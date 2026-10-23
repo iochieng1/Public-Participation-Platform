@@ -1,0 +1,33 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ppp
+          POSTGRES_PASSWORD: ppp
+          POSTGRES_DB: ppp_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U ppp" --health-interval 5s --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://ppp:ppp@localhost:5432/ppp_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+        working-directory: apps/api
+      - run: npx tsc --noEmit -p apps/api
+      - run: npm run build -w apps/web
+      - run: npm test
