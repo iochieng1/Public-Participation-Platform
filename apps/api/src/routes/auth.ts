@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { currentUser, requestOtp, signToken, verifyOtp } from '../auth.js';
+import { config } from '../config.js';
 import { prisma } from '../db.js';
 import { h, HttpError } from '../errors.js';
 import { normalizeKenyanPhone } from '../phone.js';
@@ -17,10 +18,24 @@ authRouter.post(
   '/auth/otp/request',
   h(async (req, res) => {
     const { phone } = z.object({ phone: kenyanPhone }).parse(req.body);
-    await requestOtp(phone);
-    res.status(202).json({ phone });
+    const demoCode = await requestOtp(phone);
+    res.status(202).json({ phone, ...(demoCode && { demoCode }) });
   }),
 );
+
+/** Lets the web app show demo-mode hints (demo accounts, on-screen codes). */
+authRouter.get('/meta', (_req, res) => {
+  res.json({
+    demoMode: config.demoMode,
+    demoAccounts: config.demoMode
+      ? [
+          { label: 'Kisumu county officer', phone: '0700000042' },
+          { label: 'National admin', phone: '0700000001' },
+          { label: 'Citizen (new account)', phone: '0712345678' },
+        ]
+      : [],
+  });
+});
 
 authRouter.post(
   '/auth/otp/verify',

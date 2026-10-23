@@ -116,3 +116,7 @@ button.link { background: none; border: 0; color: var(--side-muted); cursor: poi
 }
 
 @media print { .sidebar, .mobile-bar, .foot, .noprint { display: none; } }
+
+.narrow-col { max-width: 460px; }
+.demo-code { background: var(--warn-bg); border: 1px dashed #c9a400; border-radius: 6px; padding: 8px 10px; margin: 0; }
+.demo-code b { font-size: 1.15rem; letter-spacing: 0.12em; }

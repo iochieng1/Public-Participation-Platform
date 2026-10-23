@@ -4,8 +4,21 @@ function required(name: string): string {
   return v;
 }
 
+/**
+ * Demo mode: with no SMS gateway, sign-in codes are returned to the browser so a
+ * reviewer can try the app without a phone. It can never be on in production.
+ */
+export function resolveDemoMode(env: NodeJS.ProcessEnv): boolean {
+  const smsProvider = env.SMS_PROVIDER ?? 'console';
+  if (env.NODE_ENV === 'production' && smsProvider === 'console') {
+    throw new Error('SMS_PROVIDER=console is not allowed in production; configure Africa\'s Talking');
+  }
+  return smsProvider === 'console' && env.DEMO_MODE !== 'false';
+}
+
 export const config = {
   port: Number(process.env.PORT ?? 4000),
+  demoMode: resolveDemoMode(process.env),
   jwtSecret: required('JWT_SECRET'),
   callbackToken: required('CALLBACK_TOKEN'),
   smsProvider: process.env.SMS_PROVIDER ?? 'console',

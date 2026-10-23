@@ -41,15 +41,43 @@ npm run dev:api                                # http://localhost:4000
 npm run dev:web                                # http://localhost:5173
 ```
 
-With `SMS_PROVIDER=console` every SMS, including sign-in codes, is printed in the API terminal.
-Seeded accounts (sign in with the code from the console):
+## Signing in (for reviewers)
 
-| Phone | Role |
-|---|---|
-| 0700 000 001 | National admin |
-| 0700 000 042 | Kisumu county officer |
+Citizens sign in with a phone number and a 6-digit code sent by SMS. **You don't need a phone or an SMS
+account to review the app.**
 
-Try the USSD menu without a phone:
+With the default `SMS_PROVIDER=console` the app runs in **demo mode**:
+
+1. Open http://localhost:5173/signin.
+2. Under **"Reviewing the demo?"**, click one of the accounts below, or type any Kenyan mobile number and click
+   **Send code**.
+3. The code appears on screen and is filled in for you. Click **Verify**.
+
+| Demo account | Phone | What you can do |
+|---|---|---|
+| Kisumu county officer | 0700 000 042 | Draft/publish Kisumu consultations, record paper and forum submissions, decide on submissions, publish the feedback report, respond to Kisumu ward issues |
+| National admin | 0700 000 001 | Everything above, for national consultations and any county |
+| Citizen | any other number, e.g. 0712 345 678 | Set your ward, comment on the Finance Bill, report and upvote ward issues, track references |
+
+Every "SMS" (codes, receipts, outcome notices) is also printed in the API terminal as `[sms -> +2547…] …`.
+
+**How demo mode is kept out of production**
+
+- Demo mode is on only when `SMS_PROVIDER=console`. Set `DEMO_MODE=false` to hide codes from the browser even
+  then; they will still be printed in the API terminal.
+- The API **refuses to start** with `NODE_ENV=production` and `SMS_PROVIDER=console`, so a real deployment must
+  configure Africa's Talking, and codes then only ever travel by SMS.
+- Codes are single-use, expire after 5 minutes, allow 5 attempts, and are limited to 3 requests per number per
+  15 minutes.
+
+**Testing real SMS and USSD without a handset:** create a free [Africa's Talking sandbox](https://account.africastalking.com)
+app, set `SMS_PROVIDER=africastalking`, `AT_USERNAME=sandbox` and the sandbox `AT_API_KEY`, then use the
+sandbox phone simulator. It receives the SMS codes and can dial your USSD code once the callback URLs below
+point at the API (for a local API, expose it with a tunnel such as ngrok).
+
+## Try SMS and USSD without a phone
+
+The USSD menu and SMS keywords can be exercised with curl, as Africa's Talking would call them:
 
 ```bash
 curl -X POST "localhost:4000/api/callbacks/ussd?token=change-me" -d phoneNumber=0711222333 -d text=      # main menu

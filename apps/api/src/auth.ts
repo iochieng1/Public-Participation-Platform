@@ -26,6 +26,7 @@ export async function requestOtp(phone: string) {
     data: { phone, codeHash: hashOtp(phone, code), expiresAt: new Date(Date.now() + OTP_TTL_MS) },
   });
   notify(phone, `Your Public Participation code is ${code}. / Nambari yako ya kuthibitisha ni ${code}.`);
+  return config.demoMode ? code : undefined;
 }
 
 export async function verifyOtp(phone: string, code: string): Promise<User> {
