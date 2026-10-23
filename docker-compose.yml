@@ -1,0 +1,17 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ppp
+      POSTGRES_PASSWORD: ppp
+      POSTGRES_DB: ppp
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ppp"]
+      interval: 5s
+      retries: 10
+volumes:
+  pgdata:

@@ -1,0 +1,242 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Geography (IEBC administrative units) ----------
+
+model County {
+  id            Int            @id // official county code, 1–47
+  name          String         @unique
+  subCounties   SubCounty[]
+  officers      User[]
+  consultations Consultation[]
+}
+
+model SubCounty {
+  id       String @id @default(cuid())
+  name     String
+  countyId Int
+  county   County @relation(fields: [countyId], references: [id])
+  wards    Ward[]
+
+  @@unique([countyId, name])
+}
+
+model Ward {
+  id          String       @id @default(cuid())
+  name        String
+  subCountyId String
+  subCounty   SubCounty    @relation(fields: [subCountyId], references: [id])
+  residents   User[]
+  submissions Submission[]
+  issues      Issue[]
+
+  @@unique([subCountyId, name])
+}
+
+// ---------- People ----------
+
+enum Role {
+  CITIZEN
+  OFFICER // county public participation officer / clerk; scoped to one county
+  ADMIN // national-level administrator
+}
+
+enum Language {
+  EN
+  SW
+}
+
+model User {
+  id          String         @id @default(cuid())
+  phone       String         @unique // E.164, e.g. +254712345678
+  name        String?
+  role        Role           @default(CITIZEN)
+  language    Language       @default(EN)
+  wardId      String?
+  ward        Ward?          @relation(fields: [wardId], references: [id])
+  countyId    Int? // officers only: the county they administer
+  county      County?        @relation(fields: [countyId], references: [id])
+  createdAt   DateTime       @default(now())
+  submissions Submission[]
+  issues      Issue[]        @relation("reporter")
+  upvotes     IssueUpvote[]
+  issueNotes  IssueUpdate[]
+  decisions   Submission[]   @relation("decider")
+  created     Consultation[]
+}
+
+model OtpCode {
+  id         String    @id @default(cuid())
+  phone      String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([phone, createdAt])
+}
+
+// ---------- Consultations (bills, budgets, policies) ----------
+
+enum ConsultationType {
+  BILL
+  FINANCE_BILL
+  BUDGET_ESTIMATES
+  CIDP // County Integrated Development Plan
+  ADP // Annual Development Plan
+  POLICY
+  OTHER
+}
+
+enum ConsultationStatus {
+  DRAFT
+  PUBLISHED
+  REPORT_PUBLISHED
+}
+
+model Consultation {
+  id                String             @id @default(cuid())
+  code              String             @unique // short SMS keyword, e.g. KSMFB26
+  type              ConsultationType
+  countyId          Int? // null = national
+  county            County?            @relation(fields: [countyId], references: [id])
+  title             String
+  titleSw           String?
+  summary           String // plain-language summary
+  summarySw         String?
+  documentUrl       String?
+  opensAt           DateTime
+  closesAt          DateTime
+  status            ConsultationStatus @default(DRAFT)
+  reportSummary     String? // officer's narrative for the feedback report
+  reportPublishedAt DateTime?
+  createdById       String
+  createdBy         User               @relation(fields: [createdById], references: [id])
+  createdAt         DateTime           @default(now())
+  submissions       Submission[]
+}
+
+enum Channel {
+  WEB
+  SMS
+  USSD
+}
+
+enum Stance {
+  SUPPORT
+  OPPOSE
+  AMEND
+  GENERAL
+}
+
+enum Decision {
+  PENDING
+  ADOPTED
+  PARTIALLY_ADOPTED
+  NOT_ADOPTED
+}
+
+model Submission {
+  id             String       @id @default(cuid())
+  reference      String       @unique // receipt given to the citizen, e.g. S-7KQ2MX
+  consultationId String
+  consultation   Consultation @relation(fields: [consultationId], references: [id])
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  channel        Channel
+  stance         Stance
+  clause         String? // section/clause/vote head the comment refers to
+  body           String
+  wardId         String?
+  ward           Ward?        @relation(fields: [wardId], references: [id])
+  decision       Decision     @default(PENDING)
+  decisionReason String?
+  decidedAt      DateTime?
+  decidedById    String?
+  decidedBy      User?        @relation("decider", fields: [decidedById], references: [id])
+  createdAt      DateTime     @default(now())
+
+  @@index([consultationId])
+}
+
+// ---------- Ward-level issues ----------
+
+enum IssueCategory {
+  WATER
+  ROADS
+  HEALTH
+  EDUCATION
+  SECURITY
+  WASTE
+  OTHER
+}
+
+enum IssueStatus {
+  OPEN
+  ACKNOWLEDGED
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
+
+model Issue {
+  id          String        @id @default(cuid())
+  reference   String        @unique
+  wardId      String
+  ward        Ward          @relation(fields: [wardId], references: [id])
+  category    IssueCategory
+  title       String
+  description String
+  status      IssueStatus   @default(OPEN)
+  channel     Channel
+  reporterId  String
+  reporter    User          @relation("reporter", fields: [reporterId], references: [id])
+  upvoteCount Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  upvotes     IssueUpvote[]
+  updates     IssueUpdate[]
+
+  @@index([wardId, status])
+}
+
+model IssueUpvote {
+  issueId String
+  issue   Issue  @relation(fields: [issueId], references: [id])
+  userId  String
+  user    User   @relation(fields: [userId], references: [id])
+
+  @@id([issueId, userId])
+}
+
+model IssueUpdate {
+  id        String      @id @default(cuid())
+  issueId   String
+  issue     Issue       @relation(fields: [issueId], references: [id])
+  authorId  String
+  author    User        @relation(fields: [authorId], references: [id])
+  status    IssueStatus
+  note      String
+  createdAt DateTime    @default(now())
+}
+
+// ---------- Accountability ----------
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+}
