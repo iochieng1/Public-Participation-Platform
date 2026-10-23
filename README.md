@@ -12,7 +12,7 @@ are seeded, and Kisumu's 7 sub-counties and 35 wards are loaded.
 
 | Flow | Web | SMS | USSD |
 |---|---|---|---|
-| Comment on an open consultation (support / oppose / amend / general) | ✓ | `KSMFB26 HAPANA <comment>` | menu 1 |
+| Comment on an open consultation (support / oppose / amend / general) | ✓ | `KSMFB24 HAPANA <comment>` | menu 1 |
 | Report a ward issue (water, roads, health…) and upvote others | ✓ | | menu 2 |
 | Track a submission or issue reference | ✓ | `STATUS S-ABC234` / `HALI …` | menu 3 |
 | Set home ward, switch language | ✓ | | menu 4, 5 |
@@ -54,7 +54,7 @@ Try the USSD menu without a phone:
 ```bash
 curl -X POST "localhost:4000/api/callbacks/ussd?token=change-me" -d phoneNumber=0711222333 -d text=      # main menu
 curl -X POST "localhost:4000/api/callbacks/ussd?token=change-me" -d phoneNumber=0711222333 -d 'text=4*42*1*1'  # set ward
-curl -X POST "localhost:4000/api/callbacks/sms?token=change-me" -d from=0711222333 -d 'text=KSMFB26 NO too expensive'
+curl -X POST "localhost:4000/api/callbacks/sms?token=change-me" -d from=0711222333 -d 'text=KSMFB24 NO too expensive'
 ```
 
 To connect Africa's Talking, set `SMS_PROVIDER=africastalking`, `AT_USERNAME`, `AT_API_KEY` and optionally

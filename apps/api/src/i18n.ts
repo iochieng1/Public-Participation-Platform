@@ -24,8 +24,8 @@ const strings = {
   invalidChoice: { EN: 'Invalid choice. Please try again.', SW: 'Chaguo si sahihi. Tafadhali jaribu tena.' },
   notFound: { EN: 'Reference not found.', SW: 'Nambari ya kumbukumbu haikupatikana.' },
   smsHelp: {
-    EN: 'To comment, SMS: <CODE> <your comment>, e.g. KSMFB26 Reduce parking fees. To check a reference: STATUS S-ABC234.',
-    SW: 'Kutoa maoni, tuma: <CODE> <maoni yako>, mf. KSMFB26 Punguzeni ada za maegesho. Kuangalia: HALI S-ABC234.',
+    EN: 'To comment, SMS: <CODE> <your comment>, e.g. KSMFB24 Reduce parking fees. To check a reference: STATUS S-ABC234.',
+    SW: 'Kutoa maoni, tuma: <CODE> <maoni yako>, mf. KSMFB24 Punguzeni ada za maegesho. Kuangalia: HALI S-ABC234.',
   },
   unknownCode: { EN: 'Unknown or closed consultation code.', SW: 'Nambari ya mjadala haijulikani au imefungwa.' },
 } satisfies Record<string, Record<Language, string>>;

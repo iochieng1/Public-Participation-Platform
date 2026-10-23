@@ -104,7 +104,7 @@ enum ConsultationStatus {
 
 model Consultation {
   id                String             @id @default(cuid())
-  code              String             @unique // short SMS keyword, e.g. KSMFB26
+  code              String             @unique // short SMS keyword, e.g. KSMFB24
   type              ConsultationType
   countyId          Int? // null = national
   county            County?            @relation(fields: [countyId], references: [id])

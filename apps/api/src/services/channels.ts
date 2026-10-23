@@ -156,8 +156,8 @@ export async function referenceStatus(input: string, lang: Language): Promise<st
 
 // ---------------------------------------------------------------------------
 // Inbound SMS (Africa's Talking shortcode). Replies go back as outbound SMS.
-//   KSMFB26 <comment>          general comment
-//   KSMFB26 NO <comment>       stance keywords: YES/NO/AMEND, NDIO/HAPANA/BADILISHA
+//   KSMFB24 <comment>          general comment
+//   KSMFB24 NO <comment>       stance keywords: YES/NO/AMEND, NDIO/HAPANA/BADILISHA
 //   STATUS S-ABC234 | HALI ... reference lookup
 //   HELP | MSAADA
 // ---------------------------------------------------------------------------

@@ -41,7 +41,7 @@ export function NewConsultationPage() {
         the full document, and a long enough window.
       </p>
       <div className="row">
-        <input required placeholder="SMS code, e.g. KSMFB26" value={f.code} onChange={set('code')} />
+        <input required placeholder="SMS code, e.g. KSMFB24" value={f.code} onChange={set('code')} />
         <select value={f.type} onChange={set('type')}>{TYPES.map((t) => <option key={t}>{t}</option>)}</select>
       </div>
       <input required placeholder="Title (English)" value={f.title} onChange={set('title')} />

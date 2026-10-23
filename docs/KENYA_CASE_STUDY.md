@@ -108,7 +108,7 @@ flowchart LR
     SMSG[SMS shortcode]
   end
   FP -- "*xxx#" --> USSD
-  FP -- "KSMFB26 ..." --> SMSG
+  FP -- "KSMFB24 ..." --> SMSG
   USSD -- "POST /api/callbacks/ussd?token=" --> API
   SMSG -- "POST /api/callbacks/sms?token=" --> API
   API -- "outbound SMS (receipts, OTP, outcomes)" --> SMSG
@@ -131,7 +131,7 @@ Outbound SMS is fire-and-forget, so a failed SMS never fails the citizen's submi
 
 - **County** (id = official code 1–47) → **SubCounty** → **Ward**. All 47 counties are seeded. Wards are loaded per county as it onboards.
 - **User**: phone (unique), optional name, role (`CITIZEN`/`OFFICER`/`ADMIN`), language (`EN`/`SW`), ward, and county (officers only).
-- **Consultation**: SMS `code` (e.g. `KSMFB26`), type (`BILL`, `FINANCE_BILL`, `BUDGET_ESTIMATES`, `CIDP`, `ADP`, `POLICY`, `OTHER`), county (null for national), EN/SW title and summary, document URL, open/close dates, status, report summary.
+- **Consultation**: SMS `code` (e.g. `KSMFB24`), type (`BILL`, `FINANCE_BILL`, `BUDGET_ESTIMATES`, `CIDP`, `ADP`, `POLICY`, `OTHER`), county (null for national), EN/SW title and summary, document URL, open/close dates, status, report summary.
 - **Submission**: reference, channel (`WEB`/`SMS`/`USSD`, plus `PAPER`/`FORUM` for officer-digitised offline input), stance (`SUPPORT`/`OPPOSE`/`AMEND`/`GENERAL`), optional clause, body, ward at time of submission, decision, reason, decider. The submitter is optional, because a paper memorandum may come without a phone number. `recordedBy` names the officer who digitised it.
 - **Issue**: reference, ward, category (`WATER`, `ROADS`, `HEALTH`, `EDUCATION`, `SECURITY`, `WASTE`, `OTHER`), status (`OPEN` → `ACKNOWLEDGED` → `IN_PROGRESS` → `RESOLVED`/`REJECTED`), channel, upvote count. Has **IssueUpvote** (one per user) and **IssueUpdate** (public officer notes, with status changes sent to the reporter by SMS).
 - **OtpCode**, **AuditLog**.
@@ -172,7 +172,7 @@ A user without a ward who picks option 1 is told to set their ward first if ther
 ### 4.4 SMS keyword grammar
 
 ```
-<CODE> [stance] <comment>     e.g.  KSMFB26 HAPANA Ada za soko ni kubwa
+<CODE> [stance] <comment>     e.g.  KSMFB24 HAPANA Ada za soko ni kubwa
    stance ∈ YES|SUPPORT|NDIO → SUPPORT
              NO|OPPOSE|HAPANA → OPPOSE
              AMEND|CHANGE|BADILISHA → AMEND
