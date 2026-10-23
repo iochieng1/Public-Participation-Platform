@@ -1,9 +1,10 @@
 import { Router, type Request } from 'express';
 import { z } from 'zod';
 import type { Consultation, User } from '@prisma/client';
-import { assertCanManage, currentUser } from '../auth.js';
+import { assertCanManage, currentUser, findOrCreateCitizen } from '../auth.js';
 import { prisma } from '../db.js';
 import { h, HttpError, notFound } from '../errors.js';
+import { normalizeKenyanPhone } from '../phone.js';
 import {
   buildReport,
   createSubmission,
@@ -127,6 +128,44 @@ consultationsRouter.post(
       })
       .parse(req.body);
     const s = await createSubmission({ consultation, user, channel: 'WEB', ...input });
+    res.status(201).json(s);
+  }),
+);
+
+/** Officers digitise written memoranda and comments from town halls / barazas. */
+consultationsRouter.post(
+  '/consultations/:id/submissions/offline',
+  h(async (req, res) => {
+    const { user: officer, c } = await loadManaged(req);
+    const input = z
+      .object({
+        channel: z.enum(['PAPER', 'FORUM']),
+        phone: z.string().optional(),
+        wardId: z.string().optional(),
+        stance: z.enum(['SUPPORT', 'OPPOSE', 'AMEND', 'GENERAL']),
+        clause: z.string().trim().max(200).optional(),
+        body: z.string().min(3).max(5000),
+      })
+      .parse(req.body);
+    let citizen = null;
+    if (input.phone) {
+      const phone = normalizeKenyanPhone(input.phone);
+      if (!phone) throw new HttpError(400, 'Invalid Kenyan phone number');
+      citizen = await findOrCreateCitizen(phone);
+    }
+    if (input.wardId && !(await prisma.ward.findUnique({ where: { id: input.wardId } }))) {
+      throw new HttpError(400, 'Unknown ward');
+    }
+    const s = await createSubmission({
+      consultation: c,
+      user: citizen,
+      recordedBy: officer,
+      channel: input.channel,
+      stance: input.stance,
+      clause: input.clause,
+      body: input.body,
+      wardId: input.wardId ?? citizen?.wardId ?? null,
+    });
     res.status(201).json(s);
   }),
 );

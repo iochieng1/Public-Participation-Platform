@@ -151,4 +151,35 @@ describe('consultation lifecycle', () => {
     const log = await db.auditLog.findMany({ where: { entityId: c.id } });
     expect(log.map((l) => l.action)).toContain('consultation.report.publish');
   });
+
+  it('lets officers digitise paper memoranda and forum comments, even after closing, until the report is out', async () => {
+    const officer = await makeUser('OFFICER', { countyId: 42 });
+    const citizen = await makeUser();
+    const ward = await kisumuWard('Kobura');
+    const c = await openConsultation();
+    await closeConsultation(c.id);
+    const offline = (body: object, token = officer.token) =>
+      request(app).post(`/api/consultations/${c.id}/submissions/offline`).set(auth(token)).send(body);
+
+    await offline({ channel: 'PAPER', stance: 'OPPOSE', body: 'Memo from Kobura traders' }, citizen.token).expect(403);
+
+    const paper = await offline({ channel: 'PAPER', wardId: ward.id, stance: 'OPPOSE', body: 'Memo from Kobura traders' }).expect(201);
+    expect(paper.body).toMatchObject({ channel: 'PAPER', userId: null, wardId: ward.id });
+
+    outbox().length = 0;
+    const forum = await offline({ channel: 'FORUM', phone: '0733 111 222', stance: 'SUPPORT', body: 'Said at Ahero baraza: good plan' }).expect(201);
+    expect(outbox()).toEqual([expect.objectContaining({ to: '+254733111222' })]);
+
+    await request(app).post(`/api/consultations/${c.id}/decisions`).set(auth(officer.token))
+      .send({ submissionIds: [paper.body.id, forum.body.id], decision: 'ADOPTED' }).expect(200);
+    await request(app).post(`/api/consultations/${c.id}/report`).set(auth(officer.token))
+      .send({ summary: 'All memoranda and forum views were considered.' }).expect(200);
+
+    const report = (await request(app).get(`/api/consultations/${c.id}/report`)).body;
+    expect(report.totals).toEqual({ submissions: 2, participants: 2 });
+    expect(report.byChannel).toEqual({ PAPER: 1, FORUM: 1 });
+    expect(JSON.stringify(report)).not.toContain('254733111222');
+
+    await offline({ channel: 'PAPER', stance: 'GENERAL', body: 'Too late now' }).expect(409);
+  });
 });

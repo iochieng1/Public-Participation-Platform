@@ -68,6 +68,7 @@ model User {
   upvotes     IssueUpvote[]
   issueNotes  IssueUpdate[]
   decisions   Submission[]   @relation("decider")
+  recorded    Submission[]   @relation("recorder")
   created     Consultation[]
 }
 
@@ -127,6 +128,8 @@ enum Channel {
   WEB
   SMS
   USSD
+  PAPER // written memorandum, digitised by an officer
+  FORUM // comment made at a town hall / baraza, recorded by an officer
 }
 
 enum Stance {
@@ -148,8 +151,10 @@ model Submission {
   reference      String       @unique // receipt given to the citizen, e.g. S-7KQ2MX
   consultationId String
   consultation   Consultation @relation(fields: [consultationId], references: [id])
-  userId         String
-  user           User         @relation(fields: [userId], references: [id])
+  userId         String? // null for offline submissions with no phone number
+  user           User?        @relation(fields: [userId], references: [id])
+  recordedById   String? // officer who digitised a PAPER/FORUM submission
+  recordedBy     User?        @relation("recorder", fields: [recordedById], references: [id])
   channel        Channel
   stance         Stance
   clause         String? // section/clause/vote head the comment refers to

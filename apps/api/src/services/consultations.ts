@@ -45,14 +45,20 @@ export async function publishConsultation(id: string, actor: User) {
 
 export async function createSubmission(input: {
   consultation: Consultation;
-  user: User;
+  user: User | null;
   channel: Channel;
   stance: Stance;
   clause?: string | null;
   body: string;
+  wardId?: string | null;
+  recordedBy?: User;
 }) {
-  const { consultation, user } = input;
-  if (phaseOf(consultation) !== 'OPEN') throw new HttpError(409, 'This consultation is not open for comments');
+  const { consultation, user, recordedBy } = input;
+  const phase = phaseOf(consultation);
+  // Officers may digitise paper/forum submissions after closing (they were made in time),
+  // but not once the report is out.
+  const accepting = recordedBy ? phase === 'OPEN' || phase === 'CLOSED' : phase === 'OPEN';
+  if (!accepting) throw new HttpError(409, 'This consultation is not open for comments');
   const body = input.body.trim();
   if (body.length < 3) throw new HttpError(400, 'Comment is too short');
 
@@ -60,14 +66,17 @@ export async function createSubmission(input: {
     data: {
       reference: newReference('S'),
       consultationId: consultation.id,
-      userId: user.id,
+      userId: user?.id ?? null,
+      recordedById: recordedBy?.id ?? null,
       channel: input.channel,
       stance: input.stance,
       clause: input.clause ?? null,
       body: body.slice(0, 5000),
-      wardId: user.wardId,
+      wardId: input.wardId !== undefined ? input.wardId : (user?.wardId ?? null),
     },
   });
+  if (recordedBy) await audit(recordedBy.id, 'submission.record_offline', consultation.id, { reference: submission.reference });
+  if (!user) return submission;
   const title = user.language === 'SW' && consultation.titleSw ? consultation.titleSw : consultation.title;
   notify(user.phone, receiptMessage(submission.reference, title, user.language));
   return submission;
@@ -119,7 +128,10 @@ export async function buildReport(consultationId: string) {
     consultation: withPhase(c),
     totals: {
       submissions: submissions.length,
-      participants: new Set(submissions.map((s) => s.userId)).size,
+      // offline submissions without a phone number each count as one participant
+      participants:
+        new Set(submissions.flatMap((s) => (s.userId ? [s.userId] : []))).size +
+        submissions.filter((s) => !s.userId).length,
     },
     byStance: tally((s) => s.stance),
     byChannel: tally((s) => s.channel),
@@ -161,6 +173,7 @@ export async function publishReport(consultationId: string, reportSummary: strin
   const submissions = await prisma.submission.findMany({ where: { consultationId }, include: { user: true } });
   const link = `${config.publicUrl}/consultations/${c.id}/report`;
   for (const s of submissions) {
+    if (!s.user) continue;
     const lang = s.user.language;
     const msg =
       lang === 'SW'
